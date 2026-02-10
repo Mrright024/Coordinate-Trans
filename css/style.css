@@ -1,0 +1,396 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 40px;
+    max-width: 700px;
+    width: 100%;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 28px;
+}
+
+.subtitle {
+    color: #666;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+/* 标签页样式 */
+.tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 30px;
+    border-bottom: 3px solid #e0e0e0;
+    padding: 0;
+}
+
+/* 大标签页样式 */
+.tabs.main-tabs {
+    margin-bottom: 20px;
+}
+
+.tabs.main-tabs .tab-btn {
+    font-weight: 700;
+    font-size: 16px;
+    padding: 14px 25px;
+    border-bottom: 4px solid transparent;
+}
+
+.tabs.main-tabs .tab-btn:hover {
+    color: #333;
+}
+
+.tabs.main-tabs .tab-btn.active {
+    color: #667eea;
+    border-bottom: 4px solid #667eea;
+}
+
+/* 小标签页样式 */
+.tabs.sub-tabs {
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.tabs.sub-tabs .tab-btn {
+    font-size: 13px;
+    padding: 10px 16px;
+    color: #999;
+}
+
+.tabs.sub-tabs .tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.tab-btn {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 4px solid transparent;
+    color: #999;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    bottom: -3px;
+    flex: 1;
+    text-align: center;
+}
+
+.tab-btn:hover {
+    color: #666;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.input-hint {
+    font-size: 12px;
+    color: #999;
+    margin: 0;
+    margin-bottom: 8px;
+}
+
+.input-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+input[type="number"],
+.select-control,
+.textarea-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    font-family: inherit;
+}
+
+input[type="number"]:focus,
+.select-control:focus,
+.textarea-control:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.select-control {
+    cursor: pointer;
+    background-color: white;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    padding-right: 40px;
+}
+
+.textarea-control {
+    resize: vertical;
+    min-height: 150px;
+    font-family: 'Courier New', monospace;
+}
+
+button {
+    padding: 12px 20px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-convert {
+    width: 100%;
+    background-color: #667eea;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.btn-convert:hover {
+    background-color: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.format-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.format-btn {
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    color: #666;
+    border: 2px solid #e0e0e0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.format-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.format-btn.active {
+    background-color: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.btn-wgs84-to-gcj02 {
+    background-color: #667eea;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-wgs84-to-gcj02:hover {
+    background-color: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-gcj02-to-wgs84 {
+    background-color: #764ba2;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-gcj02-to-wgs84:hover {
+    background-color: #63408a;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+}
+
+.result-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid #667eea;
+}
+
+.result-title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.result-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 15px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.result-label {
+    color: #666;
+    font-weight: 500;
+    font-size: 13px;
+    min-width: 70px;
+}
+
+.result-value {
+    color: #333;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background-color: white;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    word-break: break-all;
+}
+
+.copy-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: #e0e0e0;
+    color: #333;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.copy-btn:hover {
+    background-color: #d0d0d0;
+}
+
+.copy-btn.copied {
+    background-color: #4caf50;
+    color: white;
+}
+
+.info-box {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 15px;
+    margin-top: 30px;
+    font-size: 13px;
+    color: #1565c0;
+    line-height: 1.6;
+}
+
+.info-box strong {
+    color: #0d47a1;
+}
+
+.error {
+    color: #d32f2f;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.success {
+    color: #388e3c;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+@media (max-width: 700px) {
+    .container {
+        padding: 20px;
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .input-group {
+        grid-template-columns: 1fr;
+    }
+
+    .result-item {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+    }
+
+    .textarea-control {
+        min-height: 120px;
+    }
+
+    .button-group {
+        grid-template-columns: 1fr;
+    }
+
+    .format-buttons {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .format-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}

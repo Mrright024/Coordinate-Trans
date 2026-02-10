@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>做着玩的坐标转换工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 坐标转换工具</h1>
+
+        <!-- 大标签页切换 -->
+        <div class="tabs main-tabs">
+            <button class="tab-btn active" onclick="switchMainTab('gcs')">火星坐标系转换</button>
+            <button class="tab-btn" onclick="switchMainTab('pcs')">平面坐标系转换</button>
+        </div>
+
+        <!-- 火星坐标系转换区域 -->
+        <div id="gcsArea" style="display: block;">
+            <!-- 小标签页切换 -->
+            <div class="tabs sub-tabs">
+                <button class="tab-btn active" onclick="switchTab('single')">单条转换</button>
+                <button class="tab-btn" onclick="switchTab('batch')">批量转换</button>
+            </div>
+
+        <!-- 单条转换部分 -->
+        <div id="singleTab" class="tab-content active">
+            <div class="form-group">
+                <label>坐标输入</label>
+                <div class="input-group">
+                    <div>
+                        <input type="number" id="singleLng" placeholder="经度 (Longitude)" step="0.000001">
+                        <div class="error" id="singleLngError"></div>
+                    </div>
+                    <div>
+                        <input type="number" id="singleLat" placeholder="纬度 (Latitude)" step="0.000001">
+                        <div class="error" id="singleLatError"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-wgs84-to-gcj02" onclick="convertSingleWgs84ToGcj02()">WGS84 → GCJ02</button>
+                <button class="btn-gcj02-to-wgs84" onclick="convertSingleGcj02ToWgs84()">GCJ02 → WGS84</button>
+            </div>
+
+            <div class="form-group">
+                <label>显示格式</label>
+                <div class="format-buttons">
+                    <button class="format-btn active" data-format="decimal" onclick="changeDisplayFormat('decimal')">小数形式</button>
+                    <button class="format-btn" data-format="dms" onclick="changeDisplayFormat('dms')">度分秒</button>
+                    <button class="format-btn" data-format="dm" onclick="changeDisplayFormat('dm')">度分</button>
+                </div>
+            </div>
+
+            <!-- 单条转换结果 -->
+            <div id="singleResultContainer" class="result-section" style="display: none;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="result-item">
+                    <span class="result-label">经度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="singleResultLng"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('singleResultLng', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">纬度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="singleResultLat"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('singleResultLat', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">坐标对：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="singleResultCoord"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('singleResultCoord', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 火星坐标系使用说明 -->
+            <div id="gcsInfoBox" class="info-box" style="display: block;">
+                <strong>ℹ️ 使用说明：</strong><br>
+                • <strong>WGS84</strong> 是 GPS 原始坐标系统，全球通用<br>
+                • <strong>GCJ02</strong> 是中国使用的坐标系，用于高德、腾讯等地图<br>
+                • 有效范围：中国大陆地区（超出范围返回原坐标）<br>
+                • 经度范围：73.56° ~ 135.05°，纬度范围：3.51° ~ 53.56°
+            </div>
+        </div>
+
+        <!-- 批量转换部分 -->
+        <div id="batchTab" class="tab-content" style="display: none;">
+            <div class="form-group">
+                <label>坐标数据输入</label>
+                <p class="input-hint">每行一条坐标，格式：经度,纬度 或 经度 纬度 或 g经度,纬度（奥维）</p>
+                <textarea id="batchInput" class="textarea-control" placeholder="示例：&#10;116.4074,39.9042&#10;121.4897,31.2453&#10;g114.2088,29.5630"></textarea>
+                <div class="error" id="batchError"></div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-wgs84-to-gcj02" onclick="convertBatchWgs84ToGcj02()">WGS84 → GCJ02</button>
+                <button class="btn-gcj02-to-wgs84" onclick="convertBatchGcj02ToWgs84()">GCJ02 → WGS84</button>
+            </div>
+
+            <!-- 批量转换结果 -->
+            <div id="batchResultContainer" class="result-section" style="display: none;">
+                <div class="result-title">✓ 转换结果</div>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <textarea id="batchResultOutput" class="textarea-control" readonly style="flex: 1; background-color: #f5f5f5;"></textarea>
+                    <button class="copy-btn" onclick="copyToClipboard('batchResultOutput', this)" style="margin-top: 0;">复制全部</button>
+                </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    共转换 <span id="batchResultCount">0</span> 条数据
+                </p>
+            </div>
+
+            <!-- 火星坐标系使用说明 -->
+            <div id="gcsInfoBox2" class="info-box" style="display: none;">
+                <strong>ℹ️ 使用说明：</strong><br>
+                • <strong>WGS84</strong> 是 GPS 原始坐标系统，全球通用<br>
+                • <strong>GCJ02</strong> 是中国使用的坐标系，用于高德、腾讯等地图<br>
+                • 有效范围：中国大陆地区（超出范围返回原坐标）<br>
+                • 经度范围：73.56° ~ 135.05°，纬度范围：3.51° ~ 53.56°
+            </div>
+        </div>
+        </div>
+
+        <!-- 平面坐标系转换区域 -->
+        <div id="pcsArea" style="display: none;">
+            <!-- 小标签页切换 -->
+            <div class="tabs sub-tabs">
+                <button class="tab-btn active" onclick="switchTab('gz2000')">广州2000转换</button>
+                <button class="tab-btn" onclick="switchTab('gzplane')">广州平面转换</button>
+            </div>
+
+        <!-- 广州2000转换部分 -->
+        <div id="gz2000Tab" class="tab-content" style="display: none;">
+            <div class="form-group">
+                <label>广州2000平面坐标输入</label>
+                <div class="input-group">
+                    <div>
+                        <input type="number" id="gz2000X" placeholder="X 坐标" step="0.01">
+                        <div class="error" id="gz2000XError"></div>
+                    </div>
+                    <div>
+                        <input type="number" id="gz2000Y" placeholder="Y 坐标" step="0.01">
+                        <div class="error" id="gz2000YError"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-convert" onclick="convertGz2000ToCgcs2000()">转换为CGCS2000经纬度</button>
+
+            <div class="form-group">
+                <label>显示格式</label>
+                <div class="format-buttons">
+                    <button class="format-btn active" data-format="decimal" onclick="changeDisplayFormat('decimal')">小数形式</button>
+                    <button class="format-btn" data-format="dms" onclick="changeDisplayFormat('dms')">度分秒</button>
+                    <button class="format-btn" data-format="dm" onclick="changeDisplayFormat('dm')">度分</button>
+                </div>
+            </div>
+
+            <!-- 广州2000转换结果 -->
+            <div id="gz2000ResultContainer" class="result-section" style="display: none;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="result-item">
+                    <span class="result-label">经度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gz2000ResultLng"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gz2000ResultLng', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">纬度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gz2000ResultLat"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gz2000ResultLat', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">坐标对：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gz2000ResultCoord"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gz2000ResultCoord', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>ℹ️ 使用说明：</strong><br>
+                • <strong>广州2000平面坐标系</strong> 是广州地区的本地投影坐标系
+            </div>
+        </div>
+
+        <!-- 广州平面转换部分（占位） -->
+        <div id="gzplaneTab" class="tab-content" style="display: none;">
+            <div class="form-group">
+                <p style="color: #999; text-align: center; padding: 40px 0;">广州平面转换功能开发中...</p>
+            </div>
+        </div>
+        </div>
+
+        <!-- 占位标签页容器 -->
+    </div>
+
+    <script src="js/converter.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
