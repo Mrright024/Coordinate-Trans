@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>做着玩的坐标转换工具</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,6 +15,7 @@
         <div class="tabs main-tabs">
             <button class="tab-btn active" onclick="switchMainTab('gcs')">火星坐标系转换</button>
             <button class="tab-btn" onclick="switchMainTab('pcs')">平面坐标系转换</button>
+            <button class="tab-btn" onclick="switchMainTab('dms')">度分秒转换</button>
         </div>
 
         <!-- 火星坐标系转换区域 -->
@@ -194,12 +196,109 @@
             </div>
         </div>
 
+        <!-- 度分秒转换区域（已移动到 pcsArea 之后） -->
+
         <!-- 广州平面转换部分（占位） -->
         <div id="gzplaneTab" class="tab-content" style="display: none;">
             <div class="form-group">
-                <p style="color: #999; text-align: center; padding: 40px 0;">广州平面转换功能开发中...</p>
+                <label>广州平面坐标输入</label>
+                <div class="input-group">
+                    <div>
+                        <input type="number" id="gzplaneX" placeholder="X 坐标" step="0.01">
+                        <div class="error" id="gzplaneXError"></div>
+                    </div>
+                    <div>
+                        <input type="number" id="gzplaneY" placeholder="Y 坐标" step="0.01">
+                        <div class="error" id="gzplaneYError"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-convert" onclick="convertGzPlaneToCgcs2000()">转换为CGCS2000经纬度</button>
+
+            <div class="form-group">
+                <label>显示格式</label>
+                <div class="format-buttons">
+                    <button class="format-btn active" data-format="decimal" onclick="changeDisplayFormat('decimal')">小数形式</button>
+                    <button class="format-btn" data-format="dms" onclick="changeDisplayFormat('dms')">度分秒</button>
+                    <button class="format-btn" data-format="dm" onclick="changeDisplayFormat('dm')">度分</button>
+                </div>
+            </div>
+
+            <!-- 广州平面转换结果 -->
+            <div id="gzplaneResultContainer" class="result-section" style="display: none;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="result-item">
+                    <span class="result-label">经度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gzplaneResultLng"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gzplaneResultLng', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">纬度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gzplaneResultLat"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gzplaneResultLat', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">坐标对：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="gzplaneResultCoord"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('gzplaneResultCoord', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>ℹ️ 使用说明：</strong><br>
+                <strong>广州平面坐标系</strong> 是广州地区的本地投影坐标系
             </div>
         </div>
+        </div>
+
+        <!-- 度分秒转换区域 -->
+        <div id="dmsArea" style="display: none; margin-top: 20px;">
+            <div class="form-group">
+                <label>输入角度数据</label>
+                <input type="text" id="dmsInput" placeholder="请输入角度（格式自动识别）" class="dms-input">
+                <p class="dms-hint">💡 自动识别格式：小数 113.2345 | 度分秒 113°14'04\" | 度分 113 14.07</p>
+                <div class="error" id="dmsError"></div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-convert dms-btn-convert" onclick="convertDmsInput()">🔄 自动转换</button>
+            </div>
+
+            <div id="dmsResultContainer" class="result-section" style="display: none; margin-top: 10px;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="dms-result-cards">
+                    <div class="dms-result-card">
+                        <div class="dms-card-label">小数形式</div>
+                        <div class="dms-card-value" id="dmsResultDecimal"></div>
+                        <button class="copy-btn dms-copy-btn" onclick="copyToClipboard('dmsResultDecimal', this)">复制</button>
+                    </div>
+                    <div class="dms-result-card">
+                        <div class="dms-card-label">度分秒形式</div>
+                        <div class="dms-card-value" id="dmsResultDMS"></div>
+                        <button class="copy-btn dms-copy-btn" onclick="copyToClipboard('dmsResultDMS', this)">复制</button>
+                    </div>
+                    <div class="dms-result-card">
+                        <div class="dms-card-label">度分形式</div>
+                        <div class="dms-card-value" id="dmsResultDM"></div>
+                        <button class="copy-btn dms-copy-btn" onclick="copyToClipboard('dmsResultDM', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dms-info-box">
+                <strong>ℹ️ 使用示例</strong><br>
+                • 小数输入：<code>113.2345</code> 或 <code>-23.5678</code><br>
+                • 度分秒：<code>113°14'04.2"</code> 或 <code>113 14 4.2</code><br>
+                • 度分：<code>113°14.07'</code> 或 <code>113 14.07</code><br>
+                • 支持 ° ′ ″ 符号或简单的空格/逗号分隔
+            </div>
         </div>
 
         <!-- 占位标签页容器 -->

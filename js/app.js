@@ -9,6 +9,11 @@ function clearErrors() {
     document.getElementById('batchError').textContent = '';
     document.getElementById('gz2000XError').textContent = '';
     document.getElementById('gz2000YError').textContent = '';
+    // 广州平面
+    const gxErr = document.getElementById('gzplaneXError'); if (gxErr) gxErr.textContent = '';
+    const gyErr = document.getElementById('gzplaneYError'); if (gyErr) gyErr.textContent = '';
+    // DMS转换
+    const dmsErr = document.getElementById('dmsError'); if (dmsErr) dmsErr.textContent = '';
 }
 
 // 验证坐标
@@ -30,6 +35,7 @@ function switchMainTab(mainTabName) {
     // 隐藏所有大标签页区域
     document.getElementById('gcsArea').style.display = 'none';
     document.getElementById('pcsArea').style.display = 'none';
+    const dmsAreaEl = document.getElementById('dmsArea'); if (dmsAreaEl) dmsAreaEl.style.display = 'none';
 
     // 移除所有大标签页active类
     document.querySelectorAll('.main-tabs .tab-btn').forEach(btn => {
@@ -47,6 +53,9 @@ function switchMainTab(mainTabName) {
         document.querySelectorAll('.main-tabs .tab-btn')[1].classList.add('active');
         // 显示平面坐标系的第一个小标签页
         switchTab('gz2000');
+    } else if (mainTabName === 'dms') {
+        const dms = document.getElementById('dmsArea'); if (dms) dms.style.display = 'block';
+        document.querySelectorAll('.main-tabs .tab-btn')[2].classList.add('active');
     }
 
     clearErrors();
@@ -389,6 +398,8 @@ document.addEventListener('keypress', function(event) {
             convertSingleWithDirection('wgs84-to-gcj02');
         } else if (activeElement.id === 'gz2000X' || activeElement.id === 'gz2000Y') {
             convertGz2000ToCgcs2000();
+        } else if (activeElement.id === 'gzplaneX' || activeElement.id === 'gzplaneY') {
+            convertGzPlaneToCgcs2000();
         }
     }
 });
@@ -418,4 +429,101 @@ function convertGz2000ToCgcs2000() {
     });
     updateGz2000ResultDisplay();
     document.getElementById('gz2000ResultContainer').style.display = 'block';
+}
+
+// 广州平面 -> CGCS2000 经纬度（按：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度）
+function convertGzPlaneToCgcs2000() {
+    clearErrors();
+    const x = parseFloat(document.getElementById('gzplaneX').value);
+    const y = parseFloat(document.getElementById('gzplaneY').value);
+
+    if (isNaN(x) || isNaN(y)) {
+        document.getElementById('gzplaneXError').textContent = '请输入有效的数字';
+        document.getElementById('gzplaneResultContainer').style.display = 'none';
+        return;
+    }
+
+    // 调用转换链
+    const latlng = CoordinateTransform.gzPlaneToCgcs2000LatLng(x, y);
+
+    currentResult = { lng: latlng.lng, lat: latlng.lat };
+    currentFormat = 'decimal';
+
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-format') === 'decimal') btn.classList.add('active');
+    });
+
+    updateGzplaneResultDisplay();
+    document.getElementById('gzplaneResultContainer').style.display = 'block';
+}
+
+// 更新广州平面转换结果显示
+function updateGzplaneResultDisplay() {
+    if (!currentResult.lng || !currentResult.lat) return;
+
+    const lngFormatted = getFormattedValue(currentResult.lng, currentFormat);
+    const latFormatted = getFormattedValue(currentResult.lat, currentFormat);
+
+    document.getElementById('gzplaneResultLng').textContent = lngFormatted;
+    document.getElementById('gzplaneResultLat').textContent = latFormatted;
+
+    if (currentFormat === 'decimal') {
+        document.getElementById('gzplaneResultCoord').textContent = currentResult.lng.toFixed(8) + ',' + currentResult.lat.toFixed(8);
+    } else {
+        document.getElementById('gzplaneResultCoord').textContent = lngFormatted + ',' + latFormatted;
+    }
+}
+
+// 自动检测并解析角度字符串为十进制度（支持小数/度分/度分秒）
+function parseAngleToDecimal(input) {
+    if (!input || input.trim() === '') return NaN;
+    input = input.trim();
+
+    // 先尝试作为小数直接解析（无任何分隔符或单位符）
+    if (!input.match(/[°º\'′"″\s]/)) {
+        // 纯粹的数字+小数点+负号
+        const v = parseFloat(input);
+        return isNaN(v) ? NaN : v;
+    }
+
+    // 有分隔符，需要分解为度/分/秒
+    // 将常见符号替换为空格，保留数字、点、负号
+    const cleaned = input.replace(/[°º]/g, ' ').replace(/["″]/g, ' ').replace(/[\'′]/g, ' ');
+    const parts = cleaned.split(/[^0-9.\-]+/).filter(s => s !== '');
+    if (parts.length === 0) return NaN;
+
+    const sign = input.trim().startsWith('-') ? -1 : 1;
+    const deg = parseFloat(parts[0]);
+    if (isNaN(deg)) return NaN;
+
+    let decimal = Math.abs(deg);
+    if (parts.length >= 2) {
+        const min = parseFloat(parts[1]);
+        if (!isNaN(min)) decimal += min / 60;
+    }
+    if (parts.length >= 3) {
+        const sec = parseFloat(parts[2]);
+        if (!isNaN(sec)) decimal += sec / 3600;
+    }
+
+    return sign * decimal;
+}
+
+// 将输入转换并显示为小数/度分秒/度分（自动识别格式）
+function convertDmsInput() {
+    clearErrors();
+    const input = document.getElementById('dmsInput').value;
+
+    const dec = parseAngleToDecimal(input);
+    if (isNaN(dec)) {
+        document.getElementById('dmsError').textContent = '无法解析输入，请检查格式';
+        document.getElementById('dmsResultContainer').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('dmsResultDecimal').textContent = dec.toFixed(8);
+    document.getElementById('dmsResultDMS').textContent = decimalToDMS(dec);
+    document.getElementById('dmsResultDM').textContent = decimalToDM(dec);
+    document.getElementById('dmsResultContainer').style.display = 'block';
 }

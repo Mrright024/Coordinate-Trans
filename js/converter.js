@@ -211,5 +211,167 @@ const CoordinateTransform = {
         const latLng = this.gaussToLatLng(cgcsCoord.x, cgcsCoord.y);
 
         return latLng;
+    },
+
+    // ============== 新增：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度 ==============
+
+    // 广州平面坐标 -> 西安80平面坐标（四参数法，用户提供参数）
+    gzPlaneToXian80Plane(x, y) {
+        // 使用用户提供的四参数
+        const Dx = 2529995.146137;
+        const Dy = 38386472.523543;
+        const T = 0.004835; // 单位：弧度（用户已给出）
+        const K = 1.00001624203784;
+
+        const cosT = Math.cos(T);
+        const sinT = Math.sin(T);
+
+        const X_xian = Dx + K * (x * cosT - y * sinT);
+        const Y_xian = Dy + K * (x * sinT + y * cosT);
+
+        return { x: X_xian, y: Y_xian };
+    },
+
+    // 高斯克吕格逆变换（西安80，IAG-75 椭球）
+    gaussToLatLngXian(X, Y) {
+        // Ellipsoid IAG-75
+        const a = 6378140.0;
+        const invF = 298.257;
+        const f = 1 / invF;
+        const e2 = 2 * f - f * f;
+        const ep2 = e2 / (1 - e2);
+
+        // 带号处理（如果 Y 带带号则去除并计算中央经线）
+        let y = Y;
+        let lon0Deg = 114; // 默认中央子午线
+        if (Math.abs(y) >= 1_000_000) {
+            const zone = Math.floor(Math.abs(y) / 1_000_000);
+            y = y - Math.sign(y) * zone * 1_000_000;
+            lon0Deg = zone * 3; // 3度带的中央经线
+        }
+
+        const lon0 = lon0Deg * Math.PI / 180;
+        const k0 = 1.0; // scale factor
+        const FE = 500000.0; // false easting
+        const FN = 0.0; // false northing
+
+        // ---- Inverse Transverse Mercator ----
+
+        const E = (y - FE) / k0;
+        const M = (X - FN) / k0;
+
+        const e4 = e2 * e2;
+        const e6 = e4 * e2;
+
+        const mu = M / (a * (1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256));
+        const sqrt1me2 = Math.sqrt(1 - e2);
+        const e1 = (1 - sqrt1me2) / (1 + sqrt1me2);
+
+        const e1_2 = e1 * e1;
+        const e1_3 = e1_2 * e1;
+        const e1_4 = e1_2 * e1_2;
+
+        const J1 = (3 * e1 / 2) - (27 * e1_3 / 32);
+        const J2 = (21 * e1_2 / 16) - (55 * e1_4 / 32);
+        const J3 = (151 * e1_3 / 96);
+        const J4 = (1097 * e1_4 / 512);
+
+        const fp = mu
+            + J1 * Math.sin(2 * mu)
+            + J2 * Math.sin(4 * mu)
+            + J3 * Math.sin(6 * mu)
+            + J4 * Math.sin(8 * mu);
+
+        const sinfp = Math.sin(fp);
+        const cosfp = Math.cos(fp);
+        const tanfp = Math.tan(fp);
+
+        const C1 = ep2 * cosfp * cosfp;
+        const T1 = tanfp * tanfp;
+
+        const N1 = a / Math.sqrt(1 - e2 * sinfp * sinfp);
+        const R1 = a * (1 - e2) / Math.pow(1 - e2 * sinfp * sinfp, 1.5);
+
+        const D = E / N1;
+
+        const D2 = D * D;
+        const D3 = D2 * D;
+        const D4 = D2 * D2;
+        const D5 = D4 * D;
+        const D6 = D3 * D3;
+
+        const latRad = fp - (N1 * tanfp / R1) * (
+            D2 / 2
+            - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ep2) * D4 / 24
+            + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ep2 - 3 * C1 * C1) * D6 / 720
+        );
+
+        const lonRad = lon0 + (
+            D
+            - (1 + 2 * T1 + C1) * D3 / 6
+            + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ep2 + 24 * T1 * T1) * D5 / 120
+        ) / cosfp;
+
+        const lat = latRad * 180 / Math.PI;
+        const lng = lonRad * 180 / Math.PI;
+
+        return { lng, lat };
+    },
+
+    // 辅助：大地坐标 -> 地心直角坐标 (ECEF)
+    geodeticToEcef(latDeg, lonDeg, h, a, invF) {
+        const lat = latDeg * Math.PI / 180;
+        const lon = lonDeg * Math.PI / 180;
+        const f = 1 / invF;
+        const e2 = 2 * f - f * f;
+        const N = a / Math.sqrt(1 - e2 * Math.sin(lat) * Math.sin(lat));
+        const X = (N + h) * Math.cos(lat) * Math.cos(lon);
+        const Y = (N + h) * Math.cos(lat) * Math.sin(lon);
+        const Z = (N * (1 - e2) + h) * Math.sin(lat);
+        return { X, Y, Z };
+    },
+
+    // 辅助：ECEF -> 大地坐标（迭代法），返回 lat, lon, h
+    ecefToGeodetic(X, Y, Z, a, invF) {
+        const lon = Math.atan2(Y, X);
+        const f = 1 / invF;
+        const e2 = 2 * f - f * f;
+        const eps = e2 / (1 - e2);
+
+        const p = Math.sqrt(X * X + Y * Y);
+        let lat = Math.atan2(Z, p * (1 - e2));
+        let N, h;
+        for (let i = 0; i < 10; i++) {
+            N = a / Math.sqrt(1 - e2 * Math.sin(lat) * Math.sin(lat));
+            h = p / Math.cos(lat) - N;
+            const latNext = Math.atan2(Z, p * (1 - e2 * (N / (N + h))));
+            if (Math.abs(latNext - lat) < 1e-12) {
+                lat = latNext;
+                break;
+            }
+            lat = latNext;
+        }
+
+        return { lat: lat * 180 / Math.PI, lon: lon * 180 / Math.PI, h };
+    },
+
+    // 组合函数：西安80平面坐标（IAG-75） -> CGCS2000经纬度（通过 ECEF 在两椭球间转换，假设无平移）
+    xian80PlaneToCgcs2000LatLng(X, Y) {
+        // 1) 西安80平面 -> 西安80（IAG-75）大地坐标
+        const latlng_xian = this.gaussToLatLngXian(X, Y);
+
+        // 2) IAG-75 大地坐标 -> ECEF (a=6378140.0, invF=298.257)
+        const ecef = this.geodeticToEcef(latlng_xian.lat, latlng_xian.lng, 0, 6378140.0, 298.257);
+
+        // 3) 假设没有平移/旋转/尺度差（若有须提供七参数），直接在 ECEF 空间上按 GRS80 椭球转换为经纬
+        const latlon_grs80 = this.ecefToGeodetic(ecef.X, ecef.Y, ecef.Z, 6378137.0, 298.257222101);
+
+        return { lng: latlon_grs80.lon, lat: latlon_grs80.lat };
+    },
+
+    // 终级组合：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度
+    gzPlaneToCgcs2000LatLng(x, y) {
+        const xianPlane = this.gzPlaneToXian80Plane(x, y);
+        return this.xian80PlaneToCgcs2000LatLng(xianPlane.x, xianPlane.y);
     }
 };
