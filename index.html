@@ -13,9 +13,10 @@
 
         <!-- 大标签页切换 -->
         <div class="tabs main-tabs">
-            <button class="tab-btn active" onclick="switchMainTab('gcs')">火星坐标系转换</button>
-            <button class="tab-btn" onclick="switchMainTab('pcs')">平面坐标系转换</button>
-            <button class="tab-btn" onclick="switchMainTab('dms')">度分秒转换</button>
+            <button class="tab-btn active" data-main-tab="gcs" onclick="switchMainTab('gcs')">火星坐标系转换</button>
+            <button class="tab-btn" data-main-tab="pcs" onclick="switchMainTab('pcs')">平面坐标系转换</button>
+            <button class="tab-btn" data-main-tab="height" onclick="switchMainTab('height')">高程转换</button>
+            <button class="tab-btn" data-main-tab="dms" onclick="switchMainTab('dms')">度分秒转换</button>
         </div>
 
         <!-- 火星坐标系转换区域 -->
@@ -153,7 +154,7 @@
                 </div>
             </div>
 
-            <button class="btn-convert" onclick="convertGz2000ToCgcs2000()">转换为CGCS2000经纬度</button>
+            <button class="btn-convert" onclick="convertGz2000ToWgs84()">转换为WGS84经纬度</button>
 
             <div class="form-group">
                 <label>显示格式</label>
@@ -214,7 +215,7 @@
                 </div>
             </div>
 
-            <button class="btn-convert" onclick="convertGzPlaneToCgcs2000()">转换为CGCS2000经纬度</button>
+            <button class="btn-convert" onclick="convertGzPlaneToWgs84()">转换为WGS84经纬度</button>
 
             <div class="form-group">
                 <label>显示格式</label>
@@ -256,6 +257,74 @@
                 <strong>广州平面坐标系</strong> 是广州地区的本地投影坐标系
             </div>
         </div>
+        </div>
+
+        <!-- 高程转换区域 -->
+        <div id="heightArea" style="display: none; margin-top: 20px;">
+            <div class="form-group">
+                <label>经纬度（支持小数 / 度分 / 度分秒自动识别）</label>
+                <div class="input-group">
+                    <div>
+                        <input type="text" id="heightLng" placeholder="经度，如 113.2644 或 113°15'51.84&quot;">
+                        <div class="error" id="heightLngError"></div>
+                    </div>
+                    <div>
+                        <input type="text" id="heightLat" placeholder="纬度，如 23.1291 或 23°07'44.76&quot;">
+                        <div class="error" id="heightLatError"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>输入高度值</label>
+                <input type="number" id="heightValue" placeholder="请输入高度值（m）" step="0.001">
+            </div>
+
+            <div class="form-group height-input-grid">
+                <div>
+                    <label>输入数据类型</label>
+                    <select id="heightInputType" class="select-control">
+                        <option value="gps">GPS高度</option>
+                        <option value="1985">1985国家高程系</option>
+                        <option value="guangzhou">广州高程基准</option>
+                        <option value="1956">1956黄海高程系</option>
+                        <option value="zhujiang">珠江高程基准</option>
+                    </select>
+                </div>
+                <div>
+                    <label>转换目标类型</label>
+                    <select id="heightOutputType" class="select-control"></select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>自定义差值（可选）</label>
+                <input type="number" id="heightCustomOffset" placeholder="如需修正可填写（m）" step="0.001">
+                <p class="input-hint">不填写时使用内置关系；填写后按当前转换方向应用该差值。</p>
+            </div>
+
+            <div class="height-button-group height-single-button">
+                <button class="btn-height-convert height-convert-btn" onclick="convertHeight()">开始转换</button>
+            </div>
+
+            <div class="error" id="heightError"></div>
+
+            <div id="heightResultContainer" class="result-section" style="display: none; margin-top: 15px;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="result-item">
+                    <span class="result-label" id="heightResultLabel">目标高度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="heightResultValue"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('heightResultValue', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ 使用说明：</strong><br>
+                • 基于 EGM2008 模型进行高程换算<br>
+                • 转换结果仅供参考，仅保证米级精度
+            </div>
         </div>
 
         <!-- 度分秒转换区域 -->

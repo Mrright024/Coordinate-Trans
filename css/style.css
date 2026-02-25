@@ -144,6 +144,7 @@ label {
 }
 
 input[type="number"],
+input[type="text"],
 .select-control,
 .textarea-control {
     width: 100%;
@@ -156,6 +157,7 @@ input[type="number"],
 }
 
 input[type="number"]:focus,
+input[type="text"]:focus,
 .select-control:focus,
 .textarea-control:focus {
     outline: none;
@@ -206,6 +208,40 @@ button {
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
+}
+
+.height-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.height-button-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.height-single-button {
+    grid-template-columns: 1fr;
+}
+
+.btn-height-convert {
+    color: white;
+    padding: 12px 14px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    background-color: #2e7d32;
+}
+
+.btn-height-convert:hover {
+    background-color: #276b2b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(46, 125, 50, 0.35);
 }
 
 .format-buttons {
@@ -517,6 +553,14 @@ button {
     }
 
     .button-group {
+        grid-template-columns: 1fr;
+    }
+
+    .height-input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .height-button-group {
         grid-template-columns: 1fr;
     }
 

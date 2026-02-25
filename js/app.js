@@ -1,6 +1,20 @@
 // 保存当前的转换结果数据
 let currentResult = { lng: null, lat: null };
 let currentFormat = 'decimal';
+const HEIGHT_API_BASE_URL = 'https://height-translate.waku.icu';
+const HEIGHT_DATUM_PRESETS = {
+    '1985': { label: '1985国家高程系', offset: 0.000 },
+    'guangzhou': { label: '广州高程基准', offset: 4.256 },
+    '1956': { label: '1956黄海高程系', offset: -0.158 },
+    'zhujiang': { label: '珠江高程基准', offset: -0.744 }
+};
+const HEIGHT_TYPE_OPTIONS = [
+    { value: 'gps', label: 'GPS高度' },
+    { value: '1985', label: '1985国家高程系' },
+    { value: 'guangzhou', label: '广州高程基准' },
+    { value: '1956', label: '1956黄海高程系' },
+    { value: 'zhujiang', label: '珠江高程基准' }
+];
 
 // 清除错误信息
 function clearErrors() {
@@ -14,6 +28,10 @@ function clearErrors() {
     const gyErr = document.getElementById('gzplaneYError'); if (gyErr) gyErr.textContent = '';
     // DMS转换
     const dmsErr = document.getElementById('dmsError'); if (dmsErr) dmsErr.textContent = '';
+    // 高程转换
+    const hErr = document.getElementById('heightError'); if (hErr) hErr.textContent = '';
+    const hLngErr = document.getElementById('heightLngError'); if (hLngErr) hLngErr.textContent = '';
+    const hLatErr = document.getElementById('heightLatError'); if (hLatErr) hLatErr.textContent = '';
 }
 
 // 验证坐标
@@ -33,29 +51,34 @@ function validateCoordinates(lng, lat) {
 // 大标签页切换
 function switchMainTab(mainTabName) {
     // 隐藏所有大标签页区域
-    document.getElementById('gcsArea').style.display = 'none';
-    document.getElementById('pcsArea').style.display = 'none';
-    const dmsAreaEl = document.getElementById('dmsArea'); if (dmsAreaEl) dmsAreaEl.style.display = 'none';
+    const gcsArea = document.getElementById('gcsArea');
+    const pcsArea = document.getElementById('pcsArea');
+    const heightArea = document.getElementById('heightArea');
+    const dmsArea = document.getElementById('dmsArea');
+    if (gcsArea) gcsArea.style.display = 'none';
+    if (pcsArea) pcsArea.style.display = 'none';
+    if (heightArea) heightArea.style.display = 'none';
+    if (dmsArea) dmsArea.style.display = 'none';
 
     // 移除所有大标签页active类
     document.querySelectorAll('.main-tabs .tab-btn').forEach(btn => {
-        btn.classList.remove('active');
+        const currentTab = btn.getAttribute('data-main-tab');
+        btn.classList.toggle('active', currentTab === mainTabName);
     });
 
     // 显示选中的大标签页
     if (mainTabName === 'gcs') {
-        document.getElementById('gcsArea').style.display = 'block';
-        document.querySelectorAll('.main-tabs .tab-btn')[0].classList.add('active');
+        if (gcsArea) gcsArea.style.display = 'block';
         // 显示火星坐标系的第一个小标签页
         switchTab('single');
     } else if (mainTabName === 'pcs') {
-        document.getElementById('pcsArea').style.display = 'block';
-        document.querySelectorAll('.main-tabs .tab-btn')[1].classList.add('active');
+        if (pcsArea) pcsArea.style.display = 'block';
         // 显示平面坐标系的第一个小标签页
         switchTab('gz2000');
+    } else if (mainTabName === 'height') {
+        if (heightArea) heightArea.style.display = 'block';
     } else if (mainTabName === 'dms') {
-        const dms = document.getElementById('dmsArea'); if (dms) dms.style.display = 'block';
-        document.querySelectorAll('.main-tabs .tab-btn')[2].classList.add('active');
+        if (dmsArea) dmsArea.style.display = 'block';
     }
 
     clearErrors();
@@ -397,15 +420,24 @@ document.addEventListener('keypress', function(event) {
         if (activeElement.id === 'singleLng' || activeElement.id === 'singleLat') {
             convertSingleWithDirection('wgs84-to-gcj02');
         } else if (activeElement.id === 'gz2000X' || activeElement.id === 'gz2000Y') {
-            convertGz2000ToCgcs2000();
+            convertGz2000ToWgs84();
         } else if (activeElement.id === 'gzplaneX' || activeElement.id === 'gzplaneY') {
-            convertGzPlaneToCgcs2000();
+            convertGzPlaneToWgs84();
+        } else if (
+            activeElement.id === 'heightLng' ||
+            activeElement.id === 'heightLat' ||
+            activeElement.id === 'heightValue' ||
+            activeElement.id === 'heightInputType' ||
+            activeElement.id === 'heightOutputType' ||
+            activeElement.id === 'heightCustomOffset'
+        ) {
+            convertHeight();
         }
     }
 });
 
-// 广州2000转换（调试：先仅显示四参数转换后的CGCS2000平面坐标）
-function convertGz2000ToCgcs2000() {
+// 广州2000转换（广州2000 -> WGS84经纬度）
+function convertGz2000ToWgs84() {
     clearErrors();
     const x = parseFloat(document.getElementById('gz2000X').value);
     const y = parseFloat(document.getElementById('gz2000Y').value);
@@ -417,8 +449,8 @@ function convertGz2000ToCgcs2000() {
         return;
     }
 
-    // 调用完整转换：广州2000 -> CGCS2000经纬度
-    const latlng = CoordinateTransform.gz2000ToCgcs2000LatLng(x, y);
+    // 调用完整转换：广州2000 -> WGS84经纬度
+    const latlng = CoordinateTransform.gz2000ToWgs84LatLng(x, y);
 
     // 保存并显示（支持显示格式切换）
     currentResult = { lng: latlng.lng, lat: latlng.lat };
@@ -431,8 +463,8 @@ function convertGz2000ToCgcs2000() {
     document.getElementById('gz2000ResultContainer').style.display = 'block';
 }
 
-// 广州平面 -> CGCS2000 经纬度（按：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度）
-function convertGzPlaneToCgcs2000() {
+// 广州平面 -> WGS84 经纬度（按：广州平面 -> 西安80平面(四参数) -> WGS84经纬度）
+function convertGzPlaneToWgs84() {
     clearErrors();
     const x = parseFloat(document.getElementById('gzplaneX').value);
     const y = parseFloat(document.getElementById('gzplaneY').value);
@@ -444,7 +476,7 @@ function convertGzPlaneToCgcs2000() {
     }
 
     // 调用转换链
-    const latlng = CoordinateTransform.gzPlaneToCgcs2000LatLng(x, y);
+    const latlng = CoordinateTransform.gzPlaneToWgs84LatLng(x, y);
 
     currentResult = { lng: latlng.lng, lat: latlng.lat };
     currentFormat = 'decimal';
@@ -456,6 +488,15 @@ function convertGzPlaneToCgcs2000() {
 
     updateGzplaneResultDisplay();
     document.getElementById('gzplaneResultContainer').style.display = 'block';
+}
+
+// Backward compatibility aliases
+function convertGz2000ToCgcs2000() {
+    return convertGz2000ToWgs84();
+}
+
+function convertGzPlaneToCgcs2000() {
+    return convertGzPlaneToWgs84();
 }
 
 // 更新广州平面转换结果显示
@@ -527,3 +568,208 @@ function convertDmsInput() {
     document.getElementById('dmsResultDM').textContent = decimalToDM(dec);
     document.getElementById('dmsResultContainer').style.display = 'block';
 }
+
+function getHeightTypeLabel(type) {
+    if (type === 'gps') return 'GPS高度';
+    const preset = HEIGHT_DATUM_PRESETS[type];
+    return preset ? preset.label : '目标高度';
+}
+
+function refreshHeightOutputOptions() {
+    const inputTypeEl = document.getElementById('heightInputType');
+    const outputTypeEl = document.getElementById('heightOutputType');
+    const resultLabelEl = document.getElementById('heightResultLabel');
+
+    if (!inputTypeEl || !outputTypeEl) return;
+
+    const inputType = inputTypeEl.value;
+    const currentOutput = outputTypeEl.value;
+    const available = HEIGHT_TYPE_OPTIONS.filter(option => option.value !== inputType);
+
+    outputTypeEl.innerHTML = '';
+    available.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.label;
+        outputTypeEl.appendChild(opt);
+    });
+
+    if (available.some(option => option.value === currentOutput)) {
+        outputTypeEl.value = currentOutput;
+    }
+
+    if (resultLabelEl) {
+        resultLabelEl.textContent = `${getHeightTypeLabel(outputTypeEl.value)}：`;
+    }
+}
+
+function parseOptionalInputNumber(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return null;
+
+    const text = element.value.trim();
+    if (text === '') return null;
+
+    const value = parseFloat(text);
+    return Number.isFinite(value) ? value : NaN;
+}
+
+function parseHeightCoordinate(text) {
+    if (!text || text.trim() === '') return NaN;
+    const value = parseAngleToDecimal(text.trim());
+    return Number.isFinite(value) ? value : NaN;
+}
+
+function setHeightButtonsDisabled(disabled) {
+    document.querySelectorAll('.height-convert-btn').forEach(btn => {
+        btn.disabled = disabled;
+        btn.style.opacity = disabled ? '0.65' : '1';
+        btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    });
+}
+
+function formatHeightValue(value) {
+    return `${value.toFixed(4)} m`;
+}
+
+function getPresetOffset(type) {
+    const preset = HEIGHT_DATUM_PRESETS[type];
+    return preset ? preset.offset : NaN;
+}
+
+async function fetchGeoidUndulation(lat, lon) {
+    const url = new URL('/api/v1/geoid/undulation', HEIGHT_API_BASE_URL);
+    url.searchParams.set('lat', String(lat));
+    url.searchParams.set('lon', String(lon));
+
+    const response = await fetch(url.toString(), { method: 'GET' });
+
+    let data = null;
+    try {
+        data = await response.json();
+    } catch (_) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        const detail = data && data.detail ? data.detail : `HTTP ${response.status}`;
+        throw new Error(`高程接口请求失败：${detail}`);
+    }
+
+    if (!data || typeof data.undulation_m !== 'number' || !Number.isFinite(data.undulation_m)) {
+        throw new Error('高程接口返回格式不正确');
+    }
+
+    return data;
+}
+
+async function convertHeight() {
+    clearErrors();
+
+    const resultContainer = document.getElementById('heightResultContainer');
+    const errorEl = document.getElementById('heightError');
+    const lngErrorEl = document.getElementById('heightLngError');
+    const latErrorEl = document.getElementById('heightLatError');
+
+    const lngRaw = document.getElementById('heightLng').value;
+    const latRaw = document.getElementById('heightLat').value;
+    const lng = parseHeightCoordinate(lngRaw);
+    const lat = parseHeightCoordinate(latRaw);
+
+    const heightValue = parseOptionalInputNumber('heightValue');
+    const inputType = document.getElementById('heightInputType').value;
+    const outputType = document.getElementById('heightOutputType').value;
+    const customOffset = parseOptionalInputNumber('heightCustomOffset');
+
+    const llValidation = validateCoordinates(lng, lat);
+    if (!llValidation.valid) {
+        if (lngErrorEl) lngErrorEl.textContent = '经度格式或范围错误';
+        if (latErrorEl) latErrorEl.textContent = '纬度格式或范围错误';
+        if (resultContainer) resultContainer.style.display = 'none';
+        return;
+    }
+
+    if (!inputType || !outputType || inputType === outputType) {
+        if (errorEl) errorEl.textContent = '请选择有效的输入类型和目标类型';
+        if (resultContainer) resultContainer.style.display = 'none';
+        return;
+    }
+
+    if (heightValue === null || Number.isNaN(heightValue)) {
+        if (errorEl) errorEl.textContent = '请输入有效的高度值';
+        if (resultContainer) resultContainer.style.display = 'none';
+        return;
+    }
+
+    if (Number.isNaN(customOffset)) {
+        if (errorEl) errorEl.textContent = '自定义差值格式错误';
+        if (resultContainer) resultContainer.style.display = 'none';
+        return;
+    }
+
+    if (errorEl) errorEl.textContent = '正在转换...';
+    setHeightButtonsDisabled(true);
+
+    try {
+        const geoid = await fetchGeoidUndulation(lat, lng);
+        const N = geoid.undulation_m;
+        const hasCustomOffset = customOffset !== null;
+
+        let inputOffset = inputType === 'gps' ? null : getPresetOffset(inputType);
+        let outputOffset = outputType === 'gps' ? null : getPresetOffset(outputType);
+
+        if (hasCustomOffset) {
+            if (inputType === 'gps' && outputType !== 'gps') {
+                outputOffset = customOffset;
+            } else if (outputType === 'gps' && inputType !== 'gps') {
+                inputOffset = customOffset;
+            } else if (inputType !== 'gps' && outputType !== 'gps') {
+                outputOffset = customOffset;
+            }
+        }
+
+        let h1985;
+        if (inputType === 'gps') {
+            h1985 = heightValue - N;
+        } else {
+            h1985 = heightValue - inputOffset;
+        }
+
+        let outputValue;
+        if (outputType === 'gps') {
+            outputValue = h1985 + N;
+        } else {
+            outputValue = h1985 + outputOffset;
+        }
+
+        const resultLabelEl = document.getElementById('heightResultLabel');
+        if (resultLabelEl) {
+            resultLabelEl.textContent = `${getHeightTypeLabel(outputType)}：`;
+        }
+        document.getElementById('heightResultValue').textContent = formatHeightValue(outputValue);
+
+        if (resultContainer) resultContainer.style.display = 'block';
+        if (errorEl) errorEl.textContent = '';
+    } catch (error) {
+        const message = error instanceof Error ? error.message : '高程转换失败';
+        if (errorEl) errorEl.textContent = message;
+        if (resultContainer) resultContainer.style.display = 'none';
+    } finally {
+        setHeightButtonsDisabled(false);
+    }
+}
+
+// 初始化高程类型联动
+(function initHeightConverter() {
+    const inputTypeEl = document.getElementById('heightInputType');
+    const outputTypeEl = document.getElementById('heightOutputType');
+
+    if (inputTypeEl) {
+        inputTypeEl.addEventListener('change', refreshHeightOutputOptions);
+    }
+    if (outputTypeEl) {
+        outputTypeEl.addEventListener('change', refreshHeightOutputOptions);
+    }
+
+    refreshHeightOutputOptions();
+})();

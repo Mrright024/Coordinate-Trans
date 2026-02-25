@@ -113,7 +113,7 @@ const CoordinateTransform = {
         return { x: X_cgcs, y: Y_cgcs };
     },
 
-    // 高斯克吕格投影逆变换：CGCS2000平面坐标(EPSG:4547) → 经纬度(EPSG:4490)
+    // 高斯克吕格投影逆变换：CGCS2000平面坐标(EPSG:4547) → CGCS2000经纬度(EPSG:4490)
     // 中央经线：114°，不带带号的平面坐标
     // 坐标系约定：X正方向是北，Y正方向是东
     gaussToLatLng(X, Y) {
@@ -202,18 +202,26 @@ const CoordinateTransform = {
     },
 
 
-    // 广州2000平面坐标 → CGCS2000经纬度（组合函数）
-    gz2000ToCgcs2000LatLng(x, y) {
+    // 辅助：CGCS2000经纬度 -> WGS84经纬度（无七参数时按同一ECEF坐标转换椭球）
+    cgcs2000ToWgs84LatLng(lng, lat) {
+        const ecef = this.geodeticToEcef(lat, lng, 0, 6378137.0, 298.257222101); // GRS80/CGCS2000
+        const wgs84 = this.ecefToGeodetic(ecef.X, ecef.Y, ecef.Z, 6378137.0, 298.257223563); // WGS84
+        return { lng: wgs84.lon, lat: wgs84.lat };
+    },
+
+    // 广州2000平面坐标 -> WGS84经纬度（先到CGCS2000，再换算到WGS84）
+    gz2000ToWgs84LatLng(x, y) {
         // 第一步：四参数转换
         const cgcsCoord = this.fourParamTransform(x, y);
 
-        // 第二步：高斯克吕格投影逆变换
-        const latLng = this.gaussToLatLng(cgcsCoord.x, cgcsCoord.y);
+        // 第二步：高斯克吕格投影逆变换（得到CGCS2000经纬度）
+        const cgcsLatLng = this.gaussToLatLng(cgcsCoord.x, cgcsCoord.y);
 
-        return latLng;
+        // 第三步：CGCS2000 -> WGS84
+        return this.cgcs2000ToWgs84LatLng(cgcsLatLng.lng, cgcsLatLng.lat);
     },
 
-    // ============== 新增：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度 ==============
+    // ============== 新增：广州平面 -> 西安80平面(四参数) -> WGS84经纬度 ==============
 
     // 广州平面坐标 -> 西安80平面坐标（四参数法，用户提供参数）
     gzPlaneToXian80Plane(x, y) {
@@ -355,23 +363,36 @@ const CoordinateTransform = {
         return { lat: lat * 180 / Math.PI, lon: lon * 180 / Math.PI, h };
     },
 
-    // 组合函数：西安80平面坐标（IAG-75） -> CGCS2000经纬度（通过 ECEF 在两椭球间转换，假设无平移）
-    xian80PlaneToCgcs2000LatLng(X, Y) {
+    // 组合函数：西安80平面坐标（IAG-75） -> WGS84经纬度（通过 ECEF 在两椭球间转换，假设无平移）
+    xian80PlaneToWgs84LatLng(X, Y) {
         // 1) 西安80平面 -> 西安80（IAG-75）大地坐标
         const latlng_xian = this.gaussToLatLngXian(X, Y);
 
         // 2) IAG-75 大地坐标 -> ECEF (a=6378140.0, invF=298.257)
         const ecef = this.geodeticToEcef(latlng_xian.lat, latlng_xian.lng, 0, 6378140.0, 298.257);
 
-        // 3) 假设没有平移/旋转/尺度差（若有须提供七参数），直接在 ECEF 空间上按 GRS80 椭球转换为经纬
-        const latlon_grs80 = this.ecefToGeodetic(ecef.X, ecef.Y, ecef.Z, 6378137.0, 298.257222101);
+        // 3) 假设没有平移/旋转/尺度差（若有须提供七参数），直接在 ECEF 空间上按 WGS84 椭球转换为经纬
+        const latlon_wgs84 = this.ecefToGeodetic(ecef.X, ecef.Y, ecef.Z, 6378137.0, 298.257223563);
 
-        return { lng: latlon_grs80.lon, lat: latlon_grs80.lat };
+        return { lng: latlon_wgs84.lon, lat: latlon_wgs84.lat };
     },
 
-    // 终级组合：广州平面 -> 西安80平面(四参数) -> CGCS2000经纬度
-    gzPlaneToCgcs2000LatLng(x, y) {
+    // 终级组合：广州平面 -> 西安80平面(四参数) -> WGS84经纬度
+    gzPlaneToWgs84LatLng(x, y) {
         const xianPlane = this.gzPlaneToXian80Plane(x, y);
-        return this.xian80PlaneToCgcs2000LatLng(xianPlane.x, xianPlane.y);
+        return this.xian80PlaneToWgs84LatLng(xianPlane.x, xianPlane.y);
+    },
+
+    // Backward compatibility aliases
+    gz2000ToCgcs2000LatLng(x, y) {
+        return this.gz2000ToWgs84LatLng(x, y);
+    },
+
+    xian80PlaneToCgcs2000LatLng(X, Y) {
+        return this.xian80PlaneToWgs84LatLng(X, Y);
+    },
+
+    gzPlaneToCgcs2000LatLng(x, y) {
+        return this.gzPlaneToWgs84LatLng(x, y);
     }
 };
