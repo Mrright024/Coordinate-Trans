@@ -210,6 +210,32 @@ button {
     margin-bottom: 30px;
 }
 
+.height-service-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #333;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-green {
+    background-color: #2e7d32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+.status-red {
+    background-color: #d32f2f;
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.15);
+}
+
 .height-input-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

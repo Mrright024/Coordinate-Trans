@@ -15,6 +15,7 @@ const HEIGHT_TYPE_OPTIONS = [
     { value: '1956', label: '1956黄海高程系' },
     { value: 'zhujiang', label: '珠江高程基准' }
 ];
+let heightServiceStatusTimer = null;
 
 // 清除错误信息
 function clearErrors() {
@@ -77,6 +78,7 @@ function switchMainTab(mainTabName) {
         switchTab('gz2000');
     } else if (mainTabName === 'height') {
         if (heightArea) heightArea.style.display = 'block';
+        checkHeightServiceStatus();
     } else if (mainTabName === 'dms') {
         if (dmsArea) dmsArea.style.display = 'block';
     }
@@ -632,9 +634,48 @@ function formatHeightValue(value) {
     return `${value.toFixed(4)} m`;
 }
 
+function setHeightServiceStatus(isHealthy) {
+    const dotEl = document.getElementById('heightServiceStatusDot');
+    const textEl = document.getElementById('heightServiceStatusText');
+    if (!dotEl || !textEl) return;
+
+    dotEl.classList.remove('status-green', 'status-red');
+    if (isHealthy) {
+        dotEl.classList.add('status-green');
+        textEl.textContent = '后端服务正常';
+    } else {
+        dotEl.classList.add('status-red');
+        textEl.textContent = '后端服务故障';
+    }
+}
+
 function getPresetOffset(type) {
     const preset = HEIGHT_DATUM_PRESETS[type];
     return preset ? preset.offset : NaN;
+}
+
+async function checkHeightServiceStatus() {
+    const url = new URL('/health', HEIGHT_API_BASE_URL);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    try {
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            signal: controller.signal
+        });
+        if (!response.ok) {
+            setHeightServiceStatus(false);
+            return;
+        }
+
+        const data = await response.json();
+        setHeightServiceStatus(data && data.status === 'ok');
+    } catch (_) {
+        setHeightServiceStatus(false);
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 async function fetchGeoidUndulation(lat, lon) {
@@ -747,12 +788,14 @@ async function convertHeight() {
             resultLabelEl.textContent = `${getHeightTypeLabel(outputType)}：`;
         }
         document.getElementById('heightResultValue').textContent = formatHeightValue(outputValue);
+        setHeightServiceStatus(true);
 
         if (resultContainer) resultContainer.style.display = 'block';
         if (errorEl) errorEl.textContent = '';
     } catch (error) {
         const message = error instanceof Error ? error.message : '高程转换失败';
         if (errorEl) errorEl.textContent = message;
+        setHeightServiceStatus(false);
         if (resultContainer) resultContainer.style.display = 'none';
     } finally {
         setHeightButtonsDisabled(false);
@@ -772,4 +815,8 @@ async function convertHeight() {
     }
 
     refreshHeightOutputOptions();
+    checkHeightServiceStatus();
+    if (!heightServiceStatusTimer) {
+        heightServiceStatusTimer = setInterval(checkHeightServiceStatus, 30000);
+    }
 })();
