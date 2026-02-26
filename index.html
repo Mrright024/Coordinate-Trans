@@ -136,6 +136,7 @@
             <div class="tabs sub-tabs">
                 <button class="tab-btn active" onclick="switchTab('gz2000')">广州2000转换</button>
                 <button class="tab-btn" onclick="switchTab('gzplane')">广州平面转换</button>
+                <button class="tab-btn" onclick="switchTab('cgcs2000')">CGCS2000转换</button>
             </div>
 
         <!-- 广州2000转换部分 -->
@@ -255,6 +256,64 @@
             <div class="info-box" style="margin-top: 20px;">
                 <strong>ℹ️ 使用说明：</strong><br>
                 <strong>广州平面坐标系</strong> 是广州地区的本地投影坐标系
+            </div>
+        </div>
+
+        <!-- CGCS2000平面转换部分 -->
+        <div id="cgcs2000Tab" class="tab-content" style="display: none;">
+            <div class="form-group">
+                <label>CGCS2000平面坐标输入</label>
+                <div class="input-group">
+                    <div>
+                        <input type="number" id="cgcs2000X" placeholder="X 坐标" step="0.01">
+                        <div class="error" id="cgcs2000XError"></div>
+                    </div>
+                    <div>
+                        <input type="number" id="cgcs2000Y" placeholder="Y 坐标" step="0.01">
+                        <div class="error" id="cgcs2000YError"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-convert" onclick="convertCgcs2000PlaneToWgs84()">转换为WGS84经纬度</button>
+
+            <div class="form-group">
+                <label>显示格式</label>
+                <div class="format-buttons">
+                    <button class="format-btn active" data-format="decimal" onclick="changeDisplayFormat('decimal')">小数形式</button>
+                    <button class="format-btn" data-format="dms" onclick="changeDisplayFormat('dms')">度分秒</button>
+                    <button class="format-btn" data-format="dm" onclick="changeDisplayFormat('dm')">度分</button>
+                </div>
+            </div>
+
+            <div id="cgcs2000ResultContainer" class="result-section" style="display: none;">
+                <div class="result-title">✓ 转换结果</div>
+                <div class="result-item">
+                    <span class="result-label">经度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="cgcs2000ResultLng"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('cgcs2000ResultLng', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">纬度：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="cgcs2000ResultLat"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('cgcs2000ResultLat', this)">复制</button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">坐标对：</span>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <div class="result-value" id="cgcs2000ResultCoord"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('cgcs2000ResultCoord', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>ℹ️ 使用说明：</strong><br>
+                <strong>CGCS2000平面坐标系</strong> 可直接转换为 WGS84 经纬度
             </div>
         </div>
         </div>

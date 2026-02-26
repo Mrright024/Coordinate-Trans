@@ -27,6 +27,9 @@ function clearErrors() {
     // 广州平面
     const gxErr = document.getElementById('gzplaneXError'); if (gxErr) gxErr.textContent = '';
     const gyErr = document.getElementById('gzplaneYError'); if (gyErr) gyErr.textContent = '';
+    // CGCS2000平面
+    const cgXErr = document.getElementById('cgcs2000XError'); if (cgXErr) cgXErr.textContent = '';
+    const cgYErr = document.getElementById('cgcs2000YError'); if (cgYErr) cgYErr.textContent = '';
     // DMS转换
     const dmsErr = document.getElementById('dmsError'); if (dmsErr) dmsErr.textContent = '';
     // 高程转换
@@ -93,6 +96,7 @@ function switchTab(tabName) {
     document.getElementById('batchTab').style.display = 'none';
     document.getElementById('gz2000Tab').style.display = 'none';
     document.getElementById('gzplaneTab').style.display = 'none';
+    document.getElementById('cgcs2000Tab').style.display = 'none';
 
     // 隐藏所有info-box
     const gcsInfoBox = document.getElementById('gcsInfoBox');
@@ -134,6 +138,11 @@ function switchTab(tabName) {
         document.getElementById('gzplaneTab').style.display = 'block';
         if (pcsArea.style.display !== 'none') {
             document.querySelectorAll('#pcsArea .sub-tabs .tab-btn')[1].classList.add('active');
+        }
+    } else if (tabName === 'cgcs2000') {
+        document.getElementById('cgcs2000Tab').style.display = 'block';
+        if (pcsArea.style.display !== 'none') {
+            document.querySelectorAll('#pcsArea .sub-tabs .tab-btn')[2].classList.add('active');
         }
     }
 
@@ -262,6 +271,8 @@ function changeDisplayFormat(format) {
     // 更新显示
     updateSingleResultDisplay();
     updateGz2000ResultDisplay();
+    updateGzplaneResultDisplay();
+    updateCgcs2000ResultDisplay();
 }
 
 // 更新广州2000转换结果显示
@@ -425,6 +436,8 @@ document.addEventListener('keypress', function(event) {
             convertGz2000ToWgs84();
         } else if (activeElement.id === 'gzplaneX' || activeElement.id === 'gzplaneY') {
             convertGzPlaneToWgs84();
+        } else if (activeElement.id === 'cgcs2000X' || activeElement.id === 'cgcs2000Y') {
+            convertCgcs2000PlaneToWgs84();
         } else if (
             activeElement.id === 'heightLng' ||
             activeElement.id === 'heightLat' ||
@@ -492,6 +505,32 @@ function convertGzPlaneToWgs84() {
     document.getElementById('gzplaneResultContainer').style.display = 'block';
 }
 
+// CGCS2000平面 -> WGS84 经纬度
+function convertCgcs2000PlaneToWgs84() {
+    clearErrors();
+    const x = parseFloat(document.getElementById('cgcs2000X').value);
+    const y = parseFloat(document.getElementById('cgcs2000Y').value);
+
+    if (isNaN(x) || isNaN(y)) {
+        document.getElementById('cgcs2000XError').textContent = '请输入有效的数字';
+        document.getElementById('cgcs2000ResultContainer').style.display = 'none';
+        return;
+    }
+
+    const latlng = CoordinateTransform.cgcs2000PlaneToWgs84LatLng(x, y);
+
+    currentResult = { lng: latlng.lng, lat: latlng.lat };
+    currentFormat = 'decimal';
+
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-format') === 'decimal') btn.classList.add('active');
+    });
+
+    updateCgcs2000ResultDisplay();
+    document.getElementById('cgcs2000ResultContainer').style.display = 'block';
+}
+
 // Backward compatibility aliases
 function convertGz2000ToCgcs2000() {
     return convertGz2000ToWgs84();
@@ -515,6 +554,23 @@ function updateGzplaneResultDisplay() {
         document.getElementById('gzplaneResultCoord').textContent = currentResult.lng.toFixed(8) + ',' + currentResult.lat.toFixed(8);
     } else {
         document.getElementById('gzplaneResultCoord').textContent = lngFormatted + ',' + latFormatted;
+    }
+}
+
+// 更新CGCS2000平面转换结果显示
+function updateCgcs2000ResultDisplay() {
+    if (!currentResult.lng || !currentResult.lat) return;
+
+    const lngFormatted = getFormattedValue(currentResult.lng, currentFormat);
+    const latFormatted = getFormattedValue(currentResult.lat, currentFormat);
+
+    document.getElementById('cgcs2000ResultLng').textContent = lngFormatted;
+    document.getElementById('cgcs2000ResultLat').textContent = latFormatted;
+
+    if (currentFormat === 'decimal') {
+        document.getElementById('cgcs2000ResultCoord').textContent = currentResult.lng.toFixed(8) + ',' + currentResult.lat.toFixed(8);
+    } else {
+        document.getElementById('cgcs2000ResultCoord').textContent = lngFormatted + ',' + latFormatted;
     }
 }
 

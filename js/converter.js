@@ -221,6 +221,12 @@ const CoordinateTransform = {
         return this.cgcs2000ToWgs84LatLng(cgcsLatLng.lng, cgcsLatLng.lat);
     },
 
+    // CGCS2000平面坐标 -> WGS84经纬度（CGCS2000平面逆投影后换算）
+    cgcs2000PlaneToWgs84LatLng(x, y) {
+        const cgcsLatLng = this.gaussToLatLng(x, y);
+        return this.cgcs2000ToWgs84LatLng(cgcsLatLng.lng, cgcsLatLng.lat);
+    },
+
     // ============== 新增：广州平面 -> 西安80平面(四参数) -> WGS84经纬度 ==============
 
     // 广州平面坐标 -> 西安80平面坐标（四参数法，用户提供参数）
