@@ -1,7 +1,7 @@
 // 保存当前的转换结果数据
 let currentResult = { lng: null, lat: null };
 let currentFormat = 'decimal';
-const HEIGHT_API_BASE_URL = 'https://height-translate.waku.icu';
+const HEIGHT_API_BASE_URL = 'https://height-translate.kterm.org';
 const HEIGHT_DATUM_PRESETS = {
     '1985': { label: '1985国家高程系', offset: 0.000 },
     'guangzhou': { label: '广州高程基准', offset: 4.256 },
